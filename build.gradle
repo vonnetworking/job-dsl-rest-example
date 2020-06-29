@@ -37,12 +37,12 @@ dependencies {
     compile('org.apache.ant:ant:1.9.7')
 }
 
-task rest(dependsOn: 'classes', type: JavaExec) {
-    main = 'com.dslexample.rest.RestApiScriptRunner'
+task rest(dependsOn: ['classes', 'test'], type: JavaExec) {
+    main = 'org.vonnetworking.rest.RestApiScriptRunner'
     classpath = sourceSets.main.runtimeClasspath
     systemProperties System.getProperties()
 }
 
-task wrapper(type: Wrapper) {
+/*task wrapper(type: Wrapper) {
     gradleVersion = '3.4.1'
-}
+}*/

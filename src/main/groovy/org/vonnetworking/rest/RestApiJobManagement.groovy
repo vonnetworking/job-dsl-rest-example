@@ -1,4 +1,4 @@
-package com.dslexample.rest
+package org.vonnetworking.rest
 
 import groovyx.net.http.ContentType
 import groovyx.net.http.HttpResponseDecorator
@@ -107,6 +107,69 @@ class RestApiJobManagement extends MockJobManagement {
         resp.status == 200
     }
 
+    Map readParamsfromFile (String filePath) throws IOException{
+        def jsonText = new File(filePath).text
+        new groovy.json.JsonSlurper().parseText(jsonText)
+    }
+
+    private boolean run(String baseUrl, String jobName, Map params) {
+        setCrumbHeader()
+        
+        HttpResponseDecorator resp = restClient.post(
+            path: '/job/' + jobName + '/buildWithParameters',
+            query: params,
+            requestContentType: 'application/json'
+        )
+        
+        //trace the request through the queue to determine status
+        String queueUrl
+        resp.headers.each { header ->
+            if (header.getName() == 'Location') {
+                queueUrl = header.getValue().replace(baseUrl, '')
+                System.out.println(queueUrl)
+            }
+            
+        }
+        //loop on the queue item until we can get the build number and check status on that
+        def queueResponseData = null
+        def buildURL = null
+        def queueExecutableData = null
+        while (!buildURL) {
+            System.out.println("looping waiting for Jenkins Job $jobName to Start...")
+            HttpResponseDecorator queueResp = restClient.get(
+                path: "$queueUrl/api/json"
+            )
+            //System.out.println(queueResp.responseData['url'])
+            queueResponseData = queueResp.responseData
+            
+            queueExecutableData = queueResponseData['executable']
+            if (queueExecutableData) {
+                buildURL = queueExecutableData['url'].replace(baseUrl, '')
+            }
+            sleep 1000
+        }
+
+        def buildResult = null
+        while (!buildResult) {
+            System.out.println("looping waiting for Jenkins Job $jobName to Complete...")
+            HttpResponseDecorator buildResp = restClient.get(
+                path: buildURL + '/api/json',
+                contentType: 'application/json'
+            )
+            def buildResponseData = buildResp.responseData 
+            buildResult = buildResponseData['result']
+            sleep 1000
+        }
+
+        if (buildResult != "SUCCESS") {
+            System.out.println("Build failed with result: $buildResult; please check logs for $buildURL")
+        } else {
+            System.out.println("Build Succeeded!")
+        }
+
+        resp.status == 200
+    }
+    
     private String fetchExistingXml(String name, boolean isView) {
         setCrumbHeader()
         HttpResponseDecorator resp = restClient.get(

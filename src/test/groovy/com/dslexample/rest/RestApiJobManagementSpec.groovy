@@ -1,8 +1,8 @@
-package com.dslexample.rest
+package org.vonnetworking.rest
 
 import spock.lang.Specification
 
-import static com.dslexample.rest.RestApiJobManagement.getPath
+import static org.vonnetworking.rest.RestApiJobManagement.getPath
 
 class RestApiJobManagementSpec extends Specification {
 
